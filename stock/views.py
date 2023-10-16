@@ -11,6 +11,48 @@ from .helpers import (
 from .errorHandlers import *
 
 # Create your views here.
+class CategoryViewSet(viewsets.ViewSet):
+    serializer_class = CategorySerializer
+    queryset = Categories.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        try:
+            data = list(Categories.objects.all().values())
+
+            return Response(
+                {'error': 'false', 'message':f'Data: {data}'},
+                status=status.HTTP_200_OK
+            )
+        
+        except Exception as err:
+            return Response(
+                {'error': 'true', 'message':'Something went wrong in order to fetch data'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def create(self, request):
+        try:
+            data = request.data
+            category = data['category']
+
+            if Categories.objects.filter(category=category).exists():
+                raise CategoryDuplicatedError('Category name duplicated')
+
+            cat = Categories.objects.create(**data)
+
+            return Response(
+                {'error': 'false', 'message':f'Product created: {cat}'},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as err:
+            print(err)
+            return Response(
+                {'error': 'true', 'message':f'error: {err}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 class ProductsViewSet(viewsets.ViewSet):
     serializer_class = ProductsSerializer
     queryset = Products.objects.all()
@@ -18,7 +60,6 @@ class ProductsViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
-
             data = Products.objects.all()
 
             return Response(
@@ -134,8 +175,10 @@ class IngredientsViewSet(viewsets.ViewSet):
 
             Ingredients.objects.filter(id=pk).update(**data)
 
+            min_quantity = checkQuantity(product)
+
             return Response(
-                {'error': 'false', 'message':f'Product created: {data}'},
+                {'error': 'false', 'message':f'Product created: {data}; Product quantity: {min_quantity}'},
                 status=status.HTTP_201_CREATED
             )
         
