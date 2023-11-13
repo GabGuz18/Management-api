@@ -15,3 +15,13 @@ class IngredientsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredients
         fields = '__all__'
+    
+class SalesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sales
+        fields = '__all__'
+
+class ProductSaleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product_sales
+        fields = '__all__'

@@ -9,3 +9,7 @@ class UpdateQuantityError(Exception):
 class IngredientDuplicatedError(Exception):
     """Raised when ingredint duplicated"""
     pass
+
+class IncorrectFormat(Exception):
+    """Raised when format is incorrect"""
+    pass

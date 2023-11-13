@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
+import json
 
 from .serializers import *
 from .models import *
@@ -21,7 +22,7 @@ class CategoryViewSet(viewsets.ViewSet):
             data = list(Categories.objects.all().values())
 
             return Response(
-                {'error': 'false', 'message':f'Data: {data}'},
+                {'error': 'false', 'data':data},
                 status=status.HTTP_200_OK
             )
         
@@ -36,6 +37,9 @@ class CategoryViewSet(viewsets.ViewSet):
             data = request.data
             category = data['category']
 
+            if len(category) == 0:
+                raise ValueError('Category cannot be an empty string')
+
             if Categories.objects.filter(category=category).exists():
                 raise CategoryDuplicatedError('Category name duplicated')
 
@@ -45,13 +49,37 @@ class CategoryViewSet(viewsets.ViewSet):
                 {'error': 'false', 'message':f'Product created: {cat}'},
                 status=status.HTTP_201_CREATED
             )
+        
         except Exception as err:
             print(err)
+            return Response(
+                {'error': 'true', 'message':f'{err}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def update(self, request, pk=None):
+        try:
+            data = request.data
+            category = data['category']
+
+            if len(category) == 0:
+                raise ValueError('Category cannot be an empty string')
+
+            if Categories.objects.filter(category=category).exists():
+                raise CategoryDuplicatedError('Category name duplicated')
+
+            updated_category = Categories.objects.filter(id=pk).update(category=category)
+
+            return Response(
+                {'error': 'false', 'message':f'Category updated: {category}'},
+                status=status.HTTP_201_CREATED
+            )
+        
+        except Exception as err:
             return Response(
                 {'error': 'true', 'message':f'error: {err}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
 
 class ProductsViewSet(viewsets.ViewSet):
     serializer_class = ProductsSerializer
@@ -60,10 +88,10 @@ class ProductsViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
-            data = Products.objects.all()
+            data = list(Products.objects.all().values())
 
             return Response(
-                {'error': 'false', 'message':f'Data: {data}'},
+                {'error': 'false', 'data':data},
                 status=status.HTTP_200_OK
             )
         
@@ -116,6 +144,17 @@ class ProductsViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    @action(methods=['get'],detail=True)
+    def product(self, request, pk=None):
+        data = list(Products.objects.filter(id=pk).values())[0]
+        ingredients = list(Ingredients.objects.filter(product_id=data['id']).values())
+        
+        data['ingredients'] = ingredients
+
+        return Response(
+                {'error': 'false', 'data':data},
+                status=status.HTTP_200_OK
+            )
 
 class IngredientsViewSet(viewsets.ViewSet):
     serializer_class = IngredientsSerializer
@@ -187,5 +226,45 @@ class IngredientsViewSet(viewsets.ViewSet):
                 {'error': 'true', 'message':f'error: {err}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
 
+class SalesViewSet(viewsets.ViewSet):
+    serializer_class = SalesSerializer
+    queryset = Sales.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        try:
+
+            data = Sales.objects.all()
+
+            return Response(
+                {'error': 'false', 'message':f'Data: {data}'},
+                status=status.HTTP_200_OK
+            )
+        
+        except Exception as err:
+            return Response(
+                {'error': 'true', 'message':'Something went wrong in order to fetch data'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class ProductSaleViewSet(viewsets.ViewSet):
+    serializer_class = SalesSerializer
+    queryset = Product_sales.objects.all()
+
+    def create(self,request):
+        try:
+            data = request.data
+            sale = Sales.objects.create(**data)
+
+            return Response(
+                {'error': 'false', 'message':f'Product created: {sale}'},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as err:
+            print(err)
+            return Response(
+                {'error': 'true', 'message':f'error: {err}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
